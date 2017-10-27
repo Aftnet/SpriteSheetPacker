@@ -29,8 +29,10 @@ using System.Collections.Generic;
 using System.IO;
 using SixLabors.ImageSharp;
 using SixLabors.Primitives;
+using SpriteSheetPacker.Core;
+using Microsoft.Extensions.CommandLineUtils;
 
-namespace SpriteSheetPacker.Core
+namespace SpriteSheetPacker.Cmdline
 {
 	public enum FailCode
 	{
@@ -49,12 +51,23 @@ namespace SpriteSheetPacker.Core
 
 	public class Program
 	{
-		static int Main(string[] args)
+		public static int Main(string[] args)
 		{
-			return Launch(args);
-		}
+            var app = new CommandLineApplication();
+            app.Option("-f | --folder", "specifies a folder to look for images to pack in", CommandOptionType.SingleValue);
+            app.Option("-i | --images", "specifies individual images to pack", CommandOptionType.SingleValue);
+            app.Option("-o | --output", "specifies the output image's file name", CommandOptionType.SingleValue);
+            app.Option("-m | --map", "specifies the map's file name", CommandOptionType.SingleValue);
+            app.HelpOption("-? | -h | --help");
+            app.OnExecute(() =>
+            {
+                return 0;
+            });
 
-		public static int Launch(string[] args)
+            return app.Execute();
+        }
+
+        /*public static int Launch(string[] args)
 		{
 			ProgramArguments arguments = ProgramArguments.Parse(args);
 
@@ -79,7 +92,7 @@ namespace SpriteSheetPacker.Core
 
 				if (!string.IsNullOrEmpty(arguments.map))
 				{
-					string mapExtension = Path.GetExtension(arguments.map).Substring(1).ToLower();
+					string mapExtension = Path.GetExtension(arguments.map).ToLower();
 					foreach (var exporter in Exporters.MapExporters)
 					{
 						if (exporter.MapExtension.ToLower() == mapExtension)
@@ -203,6 +216,6 @@ namespace SpriteSheetPacker.Core
 					images.Add(str);
 				}
 			}
-		}
-	}
+		}*/
+    }
 }

@@ -32,7 +32,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace SpriteSheetPacker.Core
+namespace SpriteSheetPacker.Cmdline
 {
 	public class ProgramArguments
 	{

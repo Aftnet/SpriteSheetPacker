@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace SpriteSheetPacker.Core
+namespace SpriteSheetPacker.Cmdline
 {
 	public static class Constants
 	{

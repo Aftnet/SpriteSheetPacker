@@ -28,16 +28,13 @@ using SixLabors.Primitives;
 using System.Collections.Generic;
 using System.IO;
 
-namespace SpriteSheetPacker.Core.Exporters
+namespace SpriteSheetPacker.Core.MapGenerators
 {
-    public class TxtMapExporter : IMapExporter
+    public class TxtMapGenerator : IMapGenerator
 	{
-		public string MapExtension
-		{
-			get { return "txt"; }
-		}
+        public string MapExtension => ".txt";
 
-		public void Save(string filename, Dictionary<string, Rectangle> map)
+		public byte[] Generate(Dictionary<string, Rectangle> map)
 		{
 			// copy the files list and sort alphabetically
 			string[] keys = new string[map.Count];
@@ -45,23 +42,26 @@ namespace SpriteSheetPacker.Core.Exporters
 			List<string> outputFiles = new List<string>(keys);
 			outputFiles.Sort();
 
-			using (StreamWriter writer = new StreamWriter(filename))
-			{
-				foreach (var image in outputFiles)
-				{
-					// get the destination rectangle
-					Rectangle destination = map[image];
+            using (var memStream = new MemoryStream())
+            using (StreamWriter writer = new StreamWriter(memStream))
+            {
+                foreach (var image in outputFiles)
+                {
+                    // get the destination rectangle
+                    Rectangle destination = map[image];
 
-					// write out the destination rectangle for this bitmap
-					writer.WriteLine(string.Format(
-	                 	"{0} = {1} {2} {3} {4}", 
-	                 	Path.GetFileNameWithoutExtension(image), 
-	                 	destination.X, 
-	                 	destination.Y, 
-	                 	destination.Width, 
-	                 	destination.Height));
-				}
-			}
+                    // write out the destination rectangle for this bitmap
+                    writer.WriteLine(string.Format(
+                         "{0} = {1} {2} {3} {4}",
+                         Path.GetFileNameWithoutExtension(image),
+                         destination.X,
+                         destination.Y,
+                         destination.Width,
+                         destination.Height));
+                }
+
+                return memStream.ToArray();
+            }
 		}
 	}
 }
