@@ -26,13 +26,17 @@
 
 using SixLabors.ImageSharp;
 using SixLabors.Primitives;
+using SpriteSheetPacker.Core.Packing;
 using System;
 using System.Collections.Generic;
 
-namespace SpriteSheetPacker.Core.Packing
+namespace SpriteSheetPacker.Core
 {
     public class ImagePacker
     {
+        private static readonly HashSet<string> supportedImageExtensions = new HashSet<string> { ".png", ".bmp", ".jpg", ".gif" };
+        public HashSet<string> SupportedImageExtensions => supportedImageExtensions;
+
         // various properties of the resulting image
         private bool requirePow2, requireSquare;
         private int padding;
@@ -228,8 +232,8 @@ namespace SpriteSheetPacker.Core.Packing
                 // if we require a power of two texture, find the next power of two that can fit this image
                 if (requirePow2)
                 {
-                    testWidth = MiscHelper.FindNextPowerOfTwo(testWidth);
-                    testHeight = MiscHelper.FindNextPowerOfTwo(testHeight);
+                    testWidth = FindNextPowerOfTwo(testWidth);
+                    testHeight = FindNextPowerOfTwo(testHeight);
                 }
 
                 // if we require a square texture, set the width and height to the larger of the two
@@ -310,6 +314,15 @@ namespace SpriteSheetPacker.Core.Packing
             {
                 return null;
             }
+        }
+
+        // stolen from http://en.wikipedia.org/wiki/Power_of_two#Algorithm_to_find_the_next-highest_power_of_two
+        private static int FindNextPowerOfTwo(int k)
+        {
+            k--;
+            for (int i = 1; i < sizeof(int) * 8; i <<= 1)
+                k = k | k >> i;
+            return k + 1;
         }
     }
 }
