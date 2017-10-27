@@ -29,6 +29,7 @@ using SixLabors.Primitives;
 using SpriteSheetPacker.Core.Packing;
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace SpriteSheetPacker.Core
 {
@@ -43,7 +44,7 @@ namespace SpriteSheetPacker.Core
         private int outputWidth, outputHeight;
 
         // the input list of image files
-        private List<string> files;
+        private List<FileInfo> files;
 
         // some dictionaries to hold the image sizes and destination rectangles
         private readonly Dictionary<string, Size> imageSizes = new Dictionary<string, Size>();
@@ -58,22 +59,20 @@ namespace SpriteSheetPacker.Core
         /// <param name="maximumWidth">The maximum width of the output image.</param>
         /// <param name="maximumHeight">The maximum height of the output image.</param>
         /// <param name="imagePadding">The amount of blank space to insert in between individual images.</param>
-        /// <param name="generateMap">Whether or not to generate the map dictionary.</param>
         /// <param name="outputImage">The resulting output image.</param>
         /// <param name="outputMap">The resulting output map of placement rectangles for the images.</param>
         /// <returns>true if the packing was successful, false otherwise.</returns>
         public bool PackImage(
-            IEnumerable<string> imageFiles,
+            IEnumerable<FileInfo> imageFiles,
             bool requirePowerOfTwo,
             bool requireSquareImage,
             int maximumWidth,
             int maximumHeight,
             int imagePadding,
-            bool generateMap,
             out Image<Rgba32> outputImage,
             out Dictionary<string, Rectangle> outputMap)
         {
-            files = new List<string>(imageFiles);
+            files = new List<FileInfo>(imageFiles);
             requirePow2 = requirePowerOfTwo;
             requireSquare = requireSquareImage;
             outputWidth = maximumWidth;
@@ -90,20 +89,26 @@ namespace SpriteSheetPacker.Core
             // get the sizes of all the images
             foreach (var image in files)
             {
-                using (var bitmap = Image.Load(image))
+                try
                 {
-                    if (bitmap == null)
-                        return false;
-                    imageSizes.Add(image, new Size(bitmap.Width, bitmap.Height));
+                    using (var stream = image.OpenRead())
+                    using (var bitmap = Image.Load(stream))
+                    {
+                        imageSizes.Add(image.Name, new Size(bitmap.Width, bitmap.Height));
+                    }
                 }
+                catch
+                {
+                    return false;
+                }  
             }
 
             // sort our files by file size so we place large sprites first
             files.Sort(
                 (f1, f2) =>
                 {
-                    Size b1 = imageSizes[f1];
-                    Size b2 = imageSizes[f2];
+                    Size b1 = imageSizes[f1.Name];
+                    Size b2 = imageSizes[f2.Name];
 
                     int c = -b1.Width.CompareTo(b2.Width);
                     if (c != 0)
@@ -113,7 +118,7 @@ namespace SpriteSheetPacker.Core
                     if (c != 0)
                         return c;
 
-                    return f1.CompareTo(f2);
+                    return f1.Name.CompareTo(f2.Name);
                 });
 
             // try to pack the images
@@ -125,34 +130,31 @@ namespace SpriteSheetPacker.Core
             if (outputImage == null)
                 return false;
 
-            if (generateMap)
+            // go through our image placements and replace the width/height found in there with
+            // each image's actual width/height (since the ones in imagePlacement will have padding)
+            string[] keys = new string[imagePlacement.Keys.Count];
+            imagePlacement.Keys.CopyTo(keys, 0);
+            foreach (var k in keys)
             {
-                // go through our image placements and replace the width/height found in there with
-                // each image's actual width/height (since the ones in imagePlacement will have padding)
-                string[] keys = new string[imagePlacement.Keys.Count];
-                imagePlacement.Keys.CopyTo(keys, 0);
-                foreach (var k in keys)
-                {
-                    // get the actual size
-                    Size s = imageSizes[k];
+                // get the actual size
+                Size s = imageSizes[k];
 
-                    // get the placement rectangle
-                    Rectangle r = imagePlacement[k];
+                // get the placement rectangle
+                Rectangle r = imagePlacement[k];
 
-                    // set the proper size
-                    r.Width = s.Width;
-                    r.Height = s.Height;
+                // set the proper size
+                r.Width = s.Width;
+                r.Height = s.Height;
 
-                    // insert back into the dictionary
-                    imagePlacement[k] = r;
-                }
+                // insert back into the dictionary
+                imagePlacement[k] = r;
+            }
 
-                // copy the placement dictionary to the output
-                outputMap = new Dictionary<string, Rectangle>();
-                foreach (var pair in imagePlacement)
-                {
-                    outputMap.Add(pair.Key, pair.Value);
-                }
+            // copy the placement dictionary to the output
+            outputMap = new Dictionary<string, Rectangle>();
+            foreach (var pair in imagePlacement)
+            {
+                outputMap.Add(pair.Key, pair.Value);
             }
 
             // clear our dictionaries just to free up some memory
@@ -272,7 +274,7 @@ namespace SpriteSheetPacker.Core
             foreach (var image in files)
             {
                 // get the bitmap for this file
-                Size size = imageSizes[image];
+                Size size = imageSizes[image.Name];
 
                 // pack the image
                 if (!rectanglePacker.TryPack(size.Width + padding, size.Height + padding, out var origin))
@@ -281,7 +283,7 @@ namespace SpriteSheetPacker.Core
                 }
 
                 // add the destination rectangle to our dictionary
-                testImagePlacement.Add(image, new Rectangle(origin.X, origin.Y, size.Width + padding, size.Height + padding));
+                testImagePlacement.Add(image.Name, new Rectangle(origin.X, origin.Y, size.Width + padding, size.Height + padding));
             }
 
             return true;
@@ -296,16 +298,27 @@ namespace SpriteSheetPacker.Core
                 // draw all the images into the output image
                 foreach (var image in files)
                 {
-                    Rectangle location = imagePlacement[image];
-                    var bitmap = Image.Load(image);
-                    if (bitmap == null)
+                    var location = imagePlacement[image.Name];
+                    try
+                    {
+                        using (var stream = image.OpenRead())
+                        using (var bitmap = Image.Load(stream))
+                        {
+                            // copy pixels over to avoid antialiasing or any other side effects of drawing
+                            // the subimages to the output image using Graphics
+                            for (int x = 0; x < bitmap.Width; x++)
+                            {
+                                for (int y = 0; y < bitmap.Height; y++)
+                                {
+                                    outputImage[location.X + x, location.Y + y] = bitmap[x, y];
+                                }
+                            }  
+                        }
+                    }
+                    catch
+                    {
                         return null;
-
-                    // copy pixels over to avoid antialiasing or any other side effects of drawing
-                    // the subimages to the output image using Graphics
-                    for (int x = 0; x < bitmap.Width; x++)
-                        for (int y = 0; y < bitmap.Height; y++)
-                            outputImage[location.X + x, location.Y + y] = bitmap[x, y];
+                    }
                 }
 
                 return outputImage;
