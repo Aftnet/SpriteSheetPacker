@@ -36,7 +36,7 @@ namespace SpriteSheetPacker.Core
     public class ImagePacker
     {
         private static readonly HashSet<string> supportedImageExtensions = new HashSet<string> { ".png", ".bmp", ".jpg", ".gif" };
-        public HashSet<string> SupportedImageExtensions => supportedImageExtensions;
+        public static HashSet<string> SupportedImageExtensions => supportedImageExtensions;
 
         // various properties of the resulting image
         private bool requirePow2, requireSquare;

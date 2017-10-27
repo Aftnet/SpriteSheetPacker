@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpriteSheetPacker.Core", "S
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpriteSheetPacker.Cmdline", "SpriteSheetPacker.Cmdline\SpriteSheetPacker.Cmdline.csproj", "{49277020-0A77-4BEE-ACAD-DB695ADE920F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpriteSheetPacker.Core.Test", "SpriteSheetPacker.Core.Test\SpriteSheetPacker.Core.Test.csproj", "{431146E4-EE2D-46DD-9507-3E6A128B1031}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{49277020-0A77-4BEE-ACAD-DB695ADE920F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{49277020-0A77-4BEE-ACAD-DB695ADE920F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{49277020-0A77-4BEE-ACAD-DB695ADE920F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{431146E4-EE2D-46DD-9507-3E6A128B1031}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{431146E4-EE2D-46DD-9507-3E6A128B1031}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{431146E4-EE2D-46DD-9507-3E6A128B1031}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{431146E4-EE2D-46DD-9507-3E6A128B1031}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
