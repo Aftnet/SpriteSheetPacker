@@ -57,7 +57,7 @@ namespace SpriteSheetPacker.Core.Packing
         /// <param name="generateMap">Whether or not to generate the map dictionary.</param>
         /// <param name="outputImage">The resulting output image.</param>
         /// <param name="outputMap">The resulting output map of placement rectangles for the images.</param>
-        /// <returns>0 if the packing was successful, error code otherwise.</returns>
+        /// <returns>true if the packing was successful, false otherwise.</returns>
         public bool PackImage(
             IEnumerable<string> imageFiles,
             bool requirePowerOfTwo,
