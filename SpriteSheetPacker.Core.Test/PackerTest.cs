@@ -1,3 +1,4 @@
+using SixLabors.ImageSharp.Formats.Png;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -11,10 +12,19 @@ namespace SpriteSheetPacker.Core.Test
         public void PackingWorks()
         {
             var files = GetSpriteFiles();
+            Assert.NotEmpty(files);
+
             var packer = new ImagePacker();
             packer.PackImage(files, true, true, 4096, 4096, 2, out var image, out var map);
+
             Assert.NotNull(image);
             Assert.NotNull(map);
+
+            var outFile = new FileInfo("TestOutput.png");
+            using (var stream = outFile.Open(FileMode.Create))
+            {
+                image.Save(stream, new PngEncoder());
+            }
         }
 
         private IEnumerable<FileInfo> GetSpriteFiles()
