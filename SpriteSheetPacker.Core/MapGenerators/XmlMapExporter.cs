@@ -59,6 +59,7 @@ namespace SpriteSheetPacker.Core.MapGenerators
 
                 writer.WriteLine("</Asset>");
                 writer.WriteLine("</XnaContent>");
+                writer.Flush();
 
                 return memStream.ToArray();
             }

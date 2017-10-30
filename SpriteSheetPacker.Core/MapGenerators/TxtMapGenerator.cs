@@ -60,6 +60,7 @@ namespace SpriteSheetPacker.Core.MapGenerators
                          destination.Height));
                 }
 
+                writer.Flush();
                 return memStream.ToArray();
             }
 		}
