@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "SpriteSheetPacker.Cmdline": {
-      "commandName": "Project",
-      "commandLineArgs": "lol omg -f hhh -f kkk"
-    }
-  }
-}
