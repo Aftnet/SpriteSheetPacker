@@ -54,17 +54,17 @@ namespace SpriteSheetPacker.Cmdline
 		public static int Main(string[] args)
 		{
             var app = new CommandLineApplication();
-            app.Option("-f | --folder", "specifies a folder to look for images to pack in", CommandOptionType.SingleValue);
-            app.Option("-i | --images", "specifies individual images to pack", CommandOptionType.SingleValue);
-            app.Option("-o | --output", "specifies the output image's file name", CommandOptionType.SingleValue);
-            app.Option("-m | --map", "specifies the map's file name", CommandOptionType.SingleValue);
+            var folderOption = app.Option("-f | --folder", "specifies a folder to look for images to pack in", CommandOptionType.SingleValue);
+            var imagesOption = app.Option("-i | --images", "specifies individual images to pack", CommandOptionType.SingleValue);
+            var outputOption = app.Option("-o | --output", "specifies the output image's file name", CommandOptionType.SingleValue);
+            var mapOption = app.Option("-m | --map", "specifies the map's file name", CommandOptionType.SingleValue);
             app.HelpOption("-? | -h | --help");
             app.OnExecute(() =>
             {
                 return 0;
             });
 
-            return app.Execute();
+            return app.Execute(args);
         }
 
         /*public static int Launch(string[] args)
