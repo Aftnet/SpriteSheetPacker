@@ -25,18 +25,39 @@
 #endregion
 
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.Primitives;
 using SpriteSheetPacker.Core.Packing;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace SpriteSheetPacker.Core
 {
     public class ImagePacker
     {
-        private static readonly HashSet<string> supportedImageExtensions = new HashSet<string> { ".png", ".bmp", ".jpg", ".gif" };
-        public static HashSet<string> SupportedImageExtensions => supportedImageExtensions;
+        private static readonly Dictionary<IImageFormat, IImageEncoder> supportedImageEncoders = new Dictionary<IImageFormat, IImageEncoder>
+        {
+            { ImageFormats.Bmp, new SixLabors.ImageSharp.Formats.Bmp.BmpEncoder() },
+            { ImageFormats.Png, new SixLabors.ImageSharp.Formats.Png.PngEncoder() },
+            { ImageFormats.Gif, new SixLabors.ImageSharp.Formats.Gif.GifEncoder() },
+            { ImageFormats.Jpeg, new SixLabors.ImageSharp.Formats.Jpeg.JpegEncoder() },
+        };
+
+        public static IEnumerable<IImageFormat> SupportedImageFormats => supportedImageEncoders.Keys;
+        public static IEnumerable<string> SupportedImageExtensions => SupportedImageFormats.SelectMany(d => d.FileExtensions).ToArray();
+
+        public static IImageEncoder GetEncoderFromExtension(string extension)
+        {
+            var format = supportedImageEncoders.Keys.Where(d => d.FileExtensions.Contains(extension)).FirstOrDefault();
+            if (format == null)
+            {
+                return null;
+            }
+
+            return supportedImageEncoders[format];
+        }
 
         // various properties of the resulting image
         private bool requirePow2, requireSquare;

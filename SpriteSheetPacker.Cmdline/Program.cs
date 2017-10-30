@@ -24,198 +24,73 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using SixLabors.ImageSharp;
-using SixLabors.Primitives;
-using SpriteSheetPacker.Core;
 using Microsoft.Extensions.CommandLineUtils;
+using SpriteSheetPacker.Core;
+using System;
+using System.IO;
+using System.Linq;
 
 namespace SpriteSheetPacker.Cmdline
 {
-	public enum FailCode
-	{
-		FailedParsingArguments = 1,
-		ImageExporter,
-		MapExporter,
-		NoImages,
-		ImageNameCollision,
+    public class Program
+    {
+        private const int DefaultSize = 4096;
 
-		FailedToLoadImage,
-		FailedToPackImage,
-		FailedToCreateImage,
-		FailedToSaveImage,
-		FailedToSaveMap
-	}
-
-	public class Program
-	{
-		public static int Main(string[] args)
-		{
+        public static int Main(string[] args)
+        {
             var app = new CommandLineApplication();
-            var folderOption = app.Option("-f | --folder", "specifies a folder to look for images to pack in", CommandOptionType.SingleValue);
-            var imagesOption = app.Option("-i | --images", "specifies individual images to pack", CommandOptionType.SingleValue);
-            var outputOption = app.Option("-o | --output", "specifies the output image's file name", CommandOptionType.SingleValue);
-            var mapOption = app.Option("-m | --map", "specifies the map's file name", CommandOptionType.SingleValue);
+            var folderOption = app.Option("-f | --folder", "Specifies a folder to look for images to pack in", CommandOptionType.SingleValue);
+            var outputOption = app.Option("-o | --output", "Specifies the output image's file name", CommandOptionType.SingleValue);
+            var mapOption = app.Option("-m | --map", "Specifies the map's file name", CommandOptionType.SingleValue);
+            var powTwoOption = app.Option("-p | --pow2", "Forces that the output to have power of two dimensions", CommandOptionType.NoValue);
+            var squareOption = app.Option("-s | --square", "Forces that the output to be have equal width and length", CommandOptionType.NoValue);
+            var maxWidthOption = app.Option("-w | --maxwidth", "Specifies the maximum allowed output width", CommandOptionType.SingleValue);
+            var maxHeightOption = app.Option("-h | --maxwidth", "Specifies the maximum allowed output height", CommandOptionType.SingleValue);
+
             app.HelpOption("-? | -h | --help");
             app.OnExecute(() =>
             {
+                if (!folderOption.HasValue() || outputOption.HasValue())
+                {
+                    Console.WriteLine("An input folder and an output filename are required");
+                    return 1;
+                }
+
+                var inputDir = new DirectoryInfo(folderOption.Value());
+                var inputFiles = inputDir.GetFiles().Where(d => ImagePacker.SupportedImageExtensions.Contains(d.Extension)).ToArray();
+                if (!inputFiles.Any())
+                {
+                    Console.WriteLine("No supported files found");
+                    return 1;
+                }
+
+                var outFile = new FileInfo(outputOption.Value());
+                var outEncoder = ImagePacker.GetEncoderFromExtension(outFile.Extension);
+                if (outEncoder == null)
+                {
+                    Console.WriteLine("Unsupported output file format");
+                    return 1;
+                }
+
+                var outMap = mapOption.HasValue() ? new FileInfo(mapOption.Value()) : null;
+
+                var valueParsed = int.TryParse(maxWidthOption.Value(), out var maxWidth);
+                if (!valueParsed) maxWidth = DefaultSize;
+                valueParsed = int.TryParse(maxHeightOption.Value(), out var maxHeight);
+                if (!valueParsed) maxHeight = DefaultSize;
+
+                var packer = new ImagePacker();
+                packer.PackImage(inputFiles, powTwoOption.HasValue(), squareOption.HasValue(), maxWidth, maxHeight, 0, out var packedImage, out var packedMap);
+
+                using (var outStream = outFile.Open(FileMode.Create))
+                {
+                    packedImage.Save(outStream, outEncoder);
+                }
+
                 return 0;
             });
 
             return app.Execute(args);
         }
-
-        /*public static int Launch(string[] args)
-		{
-			ProgramArguments arguments = ProgramArguments.Parse(args);
-
-			if (arguments == null)
-			{
-				return (int)FailCode.FailedParsingArguments;
-			}
-			else
-			{
-				// make sure we have our list of exporters
-				Exporters.Load();
-
-				// try to find matching exporters
-				IMapExporter mapExporter = null;
-
-				string imageExtension = Path.GetExtension(arguments.image).ToLower();
-                if(!MiscHelper.AllowedImageExtensions.Contains(imageExtension))
-                {
-                    Console.WriteLine("Unsupported output image type.");
-                    return (int)FailCode.ImageExporter;
-                }
-
-				if (!string.IsNullOrEmpty(arguments.map))
-				{
-					string mapExtension = Path.GetExtension(arguments.map).ToLower();
-					foreach (var exporter in Exporters.MapExporters)
-					{
-						if (exporter.MapExtension.ToLower() == mapExtension)
-						{
-							mapExporter = exporter;
-							break;
-						}
-					}
-
-					if (mapExporter == null)
-					{
-						Console.WriteLine("Failed to find exporters for specified map type.");
-						return (int)FailCode.MapExporter;
-					}
-				}
-
-				// compile a list of images
-				List<string> images = new List<string>();
-				FindImages(arguments, images);
-
-				// make sure we found some images
-				if (images.Count == 0)
-				{
-					Console.WriteLine("No images to pack.");
-					return (int)FailCode.NoImages;
-				}
-
-				// make sure no images have the same name if we're building a map
-				if (mapExporter != null)
-				{
-					for (int i = 0; i < images.Count; i++)
-					{
-						string str1 = Path.GetFileNameWithoutExtension(images[i]);
-
-						for (int j = i + 1; j < images.Count; j++)
-						{
-							string str2 = Path.GetFileNameWithoutExtension(images[j]);
-
-							if (str1 == str2)
-							{
-								Console.WriteLine("Two images have the same name: {0} = {1}", images[i], images[j]);
-								return (int)FailCode.ImageNameCollision;
-							}
-						}
-					}
-				}
-
-				// generate our output
-				ImagePacker imagePacker = new ImagePacker();
-				Image<Rgba32> outputImage;
-				Dictionary<string, Rectangle> outputMap;
-
-				// pack the image, generating a map only if desired
-				int result = imagePacker.PackImage(images, arguments.pow2, arguments.sqr, arguments.mw, arguments.mh, arguments.pad, mapExporter != null, out outputImage, out outputMap);
-				if (result != 0)
-				{
-					Console.WriteLine("There was an error making the image sheet.");
-					return result;
-				}
-
-				// try to save using our exporters
-				try 
-				{
-					if (File.Exists(arguments.image))
-                    {
-                        File.Delete(arguments.image);
-                    }
-                    outputImage.Save(arguments.image);
-				}
-				catch (Exception e)
-				{
-					Console.WriteLine("Error saving file: " + e.Message);
-					return (int)FailCode.FailedToSaveImage;
-				}
-				
-				if (mapExporter != null)
-				{
-					try
-					{
-						if (File.Exists(arguments.map))
-                        {
-                            File.Delete(arguments.map);
-                        }
-                        mapExporter.Save(arguments.map, outputMap);
-					}
-					catch (Exception e)
-					{
-						Console.WriteLine("Error saving file: " + e.Message);
-						return (int)FailCode.FailedToSaveMap;
-					}
-				}
-			}
-
-			return 0;
-		}
-
-		private static void FindImages(ProgramArguments arguments, List<string> images)
-		{
-			List<string> inputFiles = new List<string>();
-
-			if (!string.IsNullOrEmpty(arguments.il))
-			{
-				using (StreamReader reader = new StreamReader(arguments.il))
-				{
-					while (!reader.EndOfStream)
-					{
-						inputFiles.Add(reader.ReadLine());
-					}
-				}
-			}
-
-			if (arguments.input != null)
-			{
-				inputFiles.AddRange(arguments.input);
-			}
-
-			foreach (var str in inputFiles)
-			{
-				if (MiscHelper.IsImageFile(str))
-				{
-					images.Add(str);
-				}
-			}
-		}*/
     }
 }
