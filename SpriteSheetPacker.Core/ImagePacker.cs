@@ -46,11 +46,11 @@ namespace SpriteSheetPacker.Core
         };
 
         public static IEnumerable<IImageFormat> SupportedImageFormats => supportedImageEncoders.Keys;
-        public static IEnumerable<string> SupportedImageExtensions => SupportedImageFormats.SelectMany(d => d.FileExtensions).ToArray();
+        public static IEnumerable<string> SupportedImageExtensions => SupportedImageFormats.SelectMany(d => d.FileExtensions.Select(e => $".{e}")).ToArray();
 
         public static IImageEncoder GetEncoderFromExtension(string extension)
         {
-            var format = supportedImageEncoders.Keys.Where(d => d.FileExtensions.Contains(extension.ToLower())).FirstOrDefault();
+            var format = supportedImageEncoders.Keys.Where(d => d.FileExtensions.Contains(extension.ToLower().Substring(1))).FirstOrDefault();
             if (format == null)
             {
                 return null;

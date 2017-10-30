@@ -43,8 +43,8 @@ namespace SpriteSheetPacker.Cmdline
 
         public static int Main(string[] args)
         {
-            var app = new CommandLineApplication();
-            var folderOption = app.Option("-f | --folder", "Specifies a folder to look for images to pack in", CommandOptionType.SingleValue);
+            var app = new CommandLineApplication(false);
+            var folderOption = app.Option("-f | --folder", "Specifies input folder", CommandOptionType.SingleValue);
             var outputOption = app.Option("-o | --output", "Specifies the output image's file name", CommandOptionType.SingleValue);
             var mapOption = app.Option("-m | --map", "Specifies the map's file name", CommandOptionType.SingleValue);
             var powTwoOption = app.Option("-2 | --pow2", "Forces that the output to have power of two dimensions", CommandOptionType.NoValue);
@@ -56,7 +56,7 @@ namespace SpriteSheetPacker.Cmdline
             app.HelpOption("-? | -h | --help");
             app.OnExecute(() =>
             {
-                if (!folderOption.HasValue() || outputOption.HasValue())
+                if (!folderOption.HasValue() || !outputOption.HasValue())
                 {
                     Console.WriteLine("An input folder and an output filename are required");
                     return 1;
