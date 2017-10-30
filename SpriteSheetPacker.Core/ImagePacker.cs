@@ -50,7 +50,7 @@ namespace SpriteSheetPacker.Core
 
         public static IImageEncoder GetEncoderFromExtension(string extension)
         {
-            var format = supportedImageEncoders.Keys.Where(d => d.FileExtensions.Contains(extension)).FirstOrDefault();
+            var format = supportedImageEncoders.Keys.Where(d => d.FileExtensions.Contains(extension.ToLower())).FirstOrDefault();
             if (format == null)
             {
                 return null;

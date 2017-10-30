@@ -26,7 +26,9 @@
 
 using Microsoft.Extensions.CommandLineUtils;
 using SpriteSheetPacker.Core;
+using SpriteSheetPacker.Core.MapGenerators;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -35,6 +37,9 @@ namespace SpriteSheetPacker.Cmdline
     public class Program
     {
         private const int DefaultSize = 4096;
+        private const int DefaultPadding = 0;
+
+        private static readonly HashSet<IMapGenerator> MapGenerators = new HashSet<IMapGenerator>{ new TxtMapGenerator(), new XnaMapGenerator() };
 
         public static int Main(string[] args)
         {
@@ -42,10 +47,11 @@ namespace SpriteSheetPacker.Cmdline
             var folderOption = app.Option("-f | --folder", "Specifies a folder to look for images to pack in", CommandOptionType.SingleValue);
             var outputOption = app.Option("-o | --output", "Specifies the output image's file name", CommandOptionType.SingleValue);
             var mapOption = app.Option("-m | --map", "Specifies the map's file name", CommandOptionType.SingleValue);
-            var powTwoOption = app.Option("-p | --pow2", "Forces that the output to have power of two dimensions", CommandOptionType.NoValue);
+            var powTwoOption = app.Option("-2 | --pow2", "Forces that the output to have power of two dimensions", CommandOptionType.NoValue);
             var squareOption = app.Option("-s | --square", "Forces that the output to be have equal width and length", CommandOptionType.NoValue);
             var maxWidthOption = app.Option("-w | --maxwidth", "Specifies the maximum allowed output width", CommandOptionType.SingleValue);
             var maxHeightOption = app.Option("-h | --maxwidth", "Specifies the maximum allowed output height", CommandOptionType.SingleValue);
+            var paddingOption = app.Option("-p | --padding", "Specifies the padding in pixel between packed subimages", CommandOptionType.SingleValue);
 
             app.HelpOption("-? | -h | --help");
             app.OnExecute(() =>
@@ -57,7 +63,7 @@ namespace SpriteSheetPacker.Cmdline
                 }
 
                 var inputDir = new DirectoryInfo(folderOption.Value());
-                var inputFiles = inputDir.GetFiles().Where(d => ImagePacker.SupportedImageExtensions.Contains(d.Extension)).ToArray();
+                var inputFiles = inputDir.GetFiles().Where(d => ImagePacker.SupportedImageExtensions.Contains(d.Extension.ToLower())).ToArray();
                 if (!inputFiles.Any())
                 {
                     Console.WriteLine("No supported files found");
@@ -73,18 +79,39 @@ namespace SpriteSheetPacker.Cmdline
                 }
 
                 var outMap = mapOption.HasValue() ? new FileInfo(mapOption.Value()) : null;
+                IMapGenerator outGenerator = null;
+                if (outMap != null)
+                {
+                    outGenerator = MapGenerators.FirstOrDefault(d => d.MapExtension == outMap.Extension.ToLower());
+                    if (outGenerator == null)
+                    {
+                        Console.WriteLine("Unsupported output map format");
+                        return 1;
+                    }
+                }
 
                 var valueParsed = int.TryParse(maxWidthOption.Value(), out var maxWidth);
                 if (!valueParsed) maxWidth = DefaultSize;
                 valueParsed = int.TryParse(maxHeightOption.Value(), out var maxHeight);
                 if (!valueParsed) maxHeight = DefaultSize;
+                valueParsed = int.TryParse(paddingOption.Value(), out var padding);
+                if (!valueParsed) padding = DefaultPadding;
 
                 var packer = new ImagePacker();
-                packer.PackImage(inputFiles, powTwoOption.HasValue(), squareOption.HasValue(), maxWidth, maxHeight, 0, out var packedImage, out var packedMap);
+                packer.PackImage(inputFiles, powTwoOption.HasValue(), squareOption.HasValue(), maxWidth, maxHeight, padding, out var packedImage, out var packedMap);
 
                 using (var outStream = outFile.Open(FileMode.Create))
                 {
                     packedImage.Save(outStream, outEncoder);
+                }
+
+                if (outGenerator != null)
+                {
+                    var mapBytes = outGenerator.Generate(packedMap);
+                    using (var outStream = outMap.Open(FileMode.Create))
+                    {
+                        outStream.Write(mapBytes, 0, mapBytes.Length);
+                    }
                 }
 
                 return 0;

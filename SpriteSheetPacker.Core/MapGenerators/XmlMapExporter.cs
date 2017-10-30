@@ -1,7 +1,7 @@
-#region MIT License
+﻿#region MIT License
 
 /*
- * Copyright (c) 2009-2010 Nick Gravelyn (nick@gravelyn.com), Markus Ewald (cygon@nuclex.org)
+ * Copyright (c) 2009 Nick Gravelyn (nick@gravelyn.com), Markus Ewald (cygon@nuclex.org)
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a 
  * copy of this software and associated documentation files (the "Software"), 
@@ -30,38 +30,38 @@ using System.IO;
 
 namespace SpriteSheetPacker.Core.MapGenerators
 {
-    public class TxtMapGenerator : IMapGenerator
-	{
-        public string MapExtension => ".txt";
+    // writes out an XML file ready to be put into a XNA Content project and get compiled as content.
+    // this file can be loaded using Content.Load<Dictionary<string, Rectangle>> from inside the game.
+    public class XnaMapGenerator : IMapGenerator
+    {
+        public string MapExtension => ".xml";
 
-		public byte[] Generate(Dictionary<string, Rectangle> map)
-		{
-			// copy the files list and sort alphabetically
-			string[] keys = new string[map.Count];
-			map.Keys.CopyTo(keys, 0);
-			List<string> outputFiles = new List<string>(keys);
-			outputFiles.Sort();
-
+        public byte[] Generate(Dictionary<string, Rectangle> map)
+        {
             using (var memStream = new MemoryStream())
             using (var writer = new StreamWriter(memStream))
             {
-                foreach (var image in outputFiles)
-                {
-                    // get the destination rectangle
-                    Rectangle destination = map[image];
+                writer.WriteLine("<?xml version=\"1.0\" encoding=\"utf-8\" ?>");
+                writer.WriteLine("<XnaContent>");
+                writer.WriteLine("<Asset Type=\"System.Collections.Generic.Dictionary[System.String, Microsoft.Xna.Framework.Rectangle]\">");
 
-                    // write out the destination rectangle for this bitmap
+                foreach (var entry in map)
+                {
+                    Rectangle r = entry.Value;
                     writer.WriteLine(string.Format(
-                         "{0} = {1} {2} {3} {4}",
-                         Path.GetFileNameWithoutExtension(image),
-                         destination.X,
-                         destination.Y,
-                         destination.Width,
-                         destination.Height));
+                        "<Item><Key>{0}</Key><Value>{1} {2} {3} {4}</Value></Item>",
+                        Path.GetFileNameWithoutExtension(entry.Key),
+                        r.X,
+                        r.Y,
+                        r.Width,
+                        r.Height));
                 }
+
+                writer.WriteLine("</Asset>");
+                writer.WriteLine("</XnaContent>");
 
                 return memStream.ToArray();
             }
-		}
-	}
+        }
+    }
 }
